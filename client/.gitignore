@@ -8,13 +8,7 @@
 # Node.js dependencies
 node_modules
 
-# Build files
-dist/
-build/
 
-# Logs
-logs/
-*.log
 
 # Environment files
 .env
