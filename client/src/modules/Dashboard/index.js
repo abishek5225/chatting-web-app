@@ -2,11 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import "./style.css";
 import Img1 from '../../assets/img1.jpg'
 import Logo from "../../assets/logo.png";
-import Input from '../../components/Input'
 import { io } from 'socket.io-client'
 
 const Dashboard = () => {
-	const [user, setUser] = useState(JSON.parse(localStorage.getItem('user:detail')))
+	const [user] = useState(JSON.parse(localStorage.getItem('user:detail')))
 	const [conversations, setConversations] = useState([])
 	const [messages, setMessages] = useState({})
 	const [message, setMessage] = useState('')
@@ -26,10 +25,15 @@ const Dashboard = () => {
 		socket?.on('getMessage', data => {
 			setMessages(prev => ({
 				...prev,
-				messages: [...prev.messages, { user: data.user, message: data.message }]
+				messages: [...(prev.messages || []), { user: data.user, message: data.message }]
 			}))
 		})
-	}, [socket])
+
+		return () => {
+			socket?.off('getUsers');
+			socket?.off('getMessage');
+		};
+	}, [socket, user?.id])
 
 	useEffect(() => {
 		messageRef?.current?.scrollIntoView({ behavior: 'smooth' })
@@ -58,31 +62,38 @@ const Dashboard = () => {
 					'Content-Type': 'application/json',
 				}
 			});
-			const resData = await res.json()
-			setUsers(resData)
+			const resData = await res.json();
+			setUsers(resData);
 		}
-		fetchUsers()
-	}, [])
+		if (user?.id) {
+			fetchUsers();
+		}
+	}, [user?.id])
 
 	const fetchMessages = async (conversationId, receiver) => {
-		const res = await fetch(`http://localhost:8000/api/message/${conversationId}?senderId=${user?.id}&&receiverId=${receiver?.receiverId}`, {
+		const res = await fetch(`http://localhost:8000/api/message/${conversationId}?senderId=${user?.id}&receiverId=${receiver?.receiverId}`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
 			}
 		});
-		const resData = await res.json()
-		setMessages({ messages: resData, receiver, conversationId })
+		const resData = await res.json();
+		setMessages({ messages: resData, receiver, conversationId });
 	}
 
 	const sendMessage = async (e) => {
-		setMessage('')
+		if (!message.trim()) return;
+		
+		const messageText = message;
+		setMessage('');
+		
 		socket?.emit('sendMessage', {
 			senderId: user?.id,
 			receiverId: messages?.receiver?.receiverId,
-			message,
+			message: messageText,
 			conversationId: messages?.conversationId
 		});
+		
 		const res = await fetch(`http://localhost:8000/api/message`, {
 			method: 'POST',
 			headers: {
@@ -91,174 +102,142 @@ const Dashboard = () => {
 			body: JSON.stringify({
 				conversationId: messages?.conversationId,
 				senderId: user?.id,
-				message,
+				message: messageText,
 				receiverId: messages?.receiver?.receiverId
 			})
 		});
+		
+		if (res.ok) {
+			// Refresh messages to get the latest
+			fetchMessages(messages?.conversationId, messages?.receiver);
+		}
 	}
 
 	return (
-    <div className="w-screen flex">
-      <div className="scrollbar-messeges">
-        <div className="flex items-center my-8 mx-14">
-          <div>
-            <img src={Logo} width={75} height={75} className="profilepic" />
-          </div>
-          <div className="ml-8">
-            <h3 className="text-2xl">{user?.fullName}</h3>
-            <p className="text-lg font-light">My Account</p>
-          </div>
-        </div>
-        <hr />
-        <div className="messeges-container">
-          <div className="messeges-profile">Messages</div>
-          <div>
-            {conversations.length > 0 ? (
-              conversations.map(({ conversationId, user }) => {
-                return (
-                  <div className="messages-edit">
-                    <div
-                      className="cursor-pointer flex items-center"
-                      onClick={() => fetchMessages(conversationId, user)}
-                    >
-                      <div>
-                        <img src={Img1} className="message-images" />
-                      </div>
-                      <div className="ml-6">
-                        <h3 className="text-lg font-semibold">
-                          {user?.fullName}
-                        </h3>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center text-lg font-semibold mt-24">
-                No Conversations
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="conversation-container">
-        {messages?.receiver?.fullName && (
-          <div className="conversation-header">
-            <div className="cursor-pointer">
-              <img
-                src={Img1}
-                width={60}
-                height={60}
-                className="conversation-image"
-              />
-            </div>
-            <div className="ml-6 mr-auto">
-              <h3 className="text-lg">{messages?.receiver?.fullName}</h3>
-              <p className="text-sm font-light text-gray-500">
-                {messages?.receiver?.email}
-              </p>
-            </div>
-          </div>
-        )}
-        <div className="inputfield">
-          <div className="p-14">
-            {messages?.messages?.length > 0 ? (
-              messages.messages.map(({ message, user: { id } = {} }) => {
-                return (
-                  <>
-                    <div
-                      className={`max-w-[40%] rounded-b-xl p-4 mb-6 ${
-                        id === user?.id
-                          ? "bg-primary text-white rounded-tl-xl ml-auto"
-                          : "bg-secondary rounded-tr-xl"
-                      } `}
-                    >
-                      {message}
-                    </div>
-                    <div ref={messageRef}></div>
-                  </>
-                );
-              })
-            ) : (
-              <div className="convo-text">
-                Send a message to start a chat.
-              </div>
-            )}
-          </div>
-        </div>
-        {messages?.receiver?.fullName && (
-          <div className="p-14 w-full flex items-center">
-            <Input
-              placeholder="Type a message..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="w-[75%]"
-              inputClassName="p-4 border-0 shadow-md rounded-full bg-light focus:ring-0 focus:border-0 outline-none"
-            />
-            <div
-              className={`ml-4 p-2 cursor-pointer bg-light rounded-full ${
-                !message && "pointer-events-none"
-              }`}
-              onClick={() => sendMessage()}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="icon icon-tabler icon-tabler-send"
-                width="30"
-                height="30"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="#2c3e50"
-                fill="none"
-                strokeLinecap="round"
-                strokeinejoin="round"
-              >
-                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-                <path d="M21 3l-6.5 18a0.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a0.55 .55 0 0 1 0 -1l18 -6.5" />
-              </svg>
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="connect-people">
-        <div className="text-primary text-lg">May you want to connect with :</div>
-        <div>
-          {users.length > 0 ? (
-            users.map(({ userId, user }) => {
-              return (
-                <div className="people">
-                  <div
-                    className="cursor-pointer flex items-center"
-                    onClick={() => fetchMessages("new", user)}
-                  >
-                    <div>
-                      <img
-                        src={Img1}
-                        className="w-[60px] h-[60px] rounded-full p-[2px] border border-primary"
-                      />
-                    </div>
-                    <div className="ml-6">
-                      <h3 className="text-lg font-semibold">
-                        {user?.fullName}
-                      </h3>
-                      <p className="text-sm font-light text-gray-600">
-                        {user?.email}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="text-center text-lg font-semibold mt-24">
-              No Conversations
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+		<div className="chat-container w-screen flex">
+			{/* Sidebar */}
+			<div className="sidebar">
+				<div className="profile-section flex items-center">
+					<img src={Logo} className="profile-pic" alt="Profile" />
+					<div className="profile-info ml-4">
+						<h3>{user?.fullName}</h3>
+						<p>My Account</p>
+					</div>
+				</div>
+				
+				<div className="messages-section">
+					<div className="section-title">💬 Messages</div>
+					{conversations.length > 0 ? (
+						conversations.map(({ conversationId, user }) => (
+							<div 
+								key={conversationId}
+								className="conversation-item"
+								onClick={() => fetchMessages(conversationId, user)}
+							>
+								<img src={Img1} className="conversation-avatar" alt="User" />
+								<div className="conversation-info">
+									<h4>{user?.fullName}</h4>
+									<p>Click to chat</p>
+								</div>
+							</div>
+						))
+					) : (
+						<div className="text-center text-gray-500 mt-8">
+							No conversations yet
+						</div>
+					)}
+				</div>
+			</div>
+
+			{/* Main Chat Area */}
+			<div className="chat-main">
+				{messages?.receiver?.fullName ? (
+					<>
+						<div className="chat-header">
+							<img src={Img1} className="chat-header-avatar" alt="User" />
+							<div className="chat-header-info">
+								<h3>{messages?.receiver?.fullName}</h3>
+								<p>{messages?.receiver?.email}</p>
+							</div>
+						</div>
+						
+						<div className="messages-container">
+							{messages?.messages?.length > 0 ? (
+								messages.messages.map(({ message, user: { id } = {} }, index) => (
+									<div key={index}>
+										<div
+											className={`message-bubble ${
+												id === user?.id ? "message-sent" : "message-received"
+											}`}
+										>
+											{message}
+										</div>
+										<div ref={messageRef}></div>
+									</div>
+								))
+							) : (
+								<div className="empty-chat">
+									<div className="empty-chat-icon">💬</div>
+									<h3>Start a conversation</h3>
+									<p>Send a message to begin chatting</p>
+								</div>
+							)}
+						</div>
+						
+						<div className="message-input-container">
+							<input
+								type="text"
+								placeholder="Type your message..."
+								value={message}
+								onChange={(e) => setMessage(e.target.value)}
+								className="message-input"
+								onKeyPress={(e) => e.key === 'Enter' && message.trim() && sendMessage()}
+							/>
+							<button
+								className="send-button"
+								onClick={sendMessage}
+								disabled={!message.trim()}
+							>
+								<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+								</svg>
+							</button>
+						</div>
+					</>
+				) : (
+					<div className="empty-chat">
+						<div className="empty-chat-icon">🚀</div>
+						<h3>Welcome to Chat App</h3>
+						<p>Select a conversation or start a new one</p>
+					</div>
+				)}
+			</div>
+
+			{/* Users Section */}
+			<div className="users-section">
+				<div className="users-title">Connect with people</div>
+				{users.length > 0 ? (
+					users.map(({ user }) => (
+						<div 
+							key={user.receiverId}
+							className="user-item"
+							onClick={() => fetchMessages("new", user)}
+						>
+							<img src={Img1} className="user-avatar" alt="User" />
+							<div className="user-info">
+								<h4>{user?.fullName}</h4>
+								<p>{user?.email}</p>
+							</div>
+						</div>
+					))
+				) : (
+					<div className="text-center text-gray-500 mt-8">
+						No users available
+					</div>
+				)}
+			</div>
+		</div>
+	);
 }
 
 export default Dashboard

@@ -248,18 +248,28 @@ app.get("/api/conversations/:userId", async (req, res) => {
 app.post("/api/message", async (req, res) => {
   try {
     const { conversationId, senderId, message, receiverId = "" } = req.body;
-    if (!senderId || !message)
-      return res.status(400).send("Please fill all required fields");
+    
+    if (!senderId || !message) {
+      return res.status(400).json({ message: "Please fill all required fields" });
+    }
 
     let convId = conversationId;
+    
     if (convId === "new" && receiverId) {
-      const newConversation = new Conversation({
-        members: [senderId, receiverId],
+      // Check if conversation already exists
+      const existingConversation = await Conversation.findOne({
+        members: { $all: [senderId, receiverId] }
       });
-      await newConversation.save();
-      convId = newConversation._id;
-    } else if (!convId && !receiverId) {
-      return res.status(400).send("Please fill all required fields");
+      
+      if (existingConversation) {
+        convId = existingConversation._id;
+      } else {
+        const newConversation = new Conversation({
+          members: [senderId, receiverId],
+        });
+        await newConversation.save();
+        convId = newConversation._id;
+      }
     }
 
     const existingMessage = await Message.findOne({ conversationId: convId });
@@ -267,14 +277,52 @@ app.post("/api/message", async (req, res) => {
     if (existingMessage) {
       existingMessage.messages.push({ senderId, receiverId, message });
       await existingMessage.save();
-      res.status(200).json(existingMessage);
     } else {
       const newMessage = new Message({
         conversationId: convId,
         messages: [{ senderId, receiverId, message }],
       });
       await newMessage.save();
-      res.status(201).json(newMessage);
+    }
+    
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.log(error, "Error");
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/api/message/:conversationId", async (req, res) => {
+  try {
+    const conversationId = req.params.conversationId;
+    
+    if (conversationId === "new") {
+      const { senderId, receiverId } = req.query;
+      
+      // Check if conversation already exists
+      const existingConversation = await Conversation.findOne({
+        members: { $all: [senderId, receiverId] }
+      });
+      
+      if (existingConversation) {
+        const messages = await Message.findOne({ conversationId: existingConversation._id });
+        const messageData = messages ? messages.messages.map(msg => ({
+          user: { id: msg.senderId },
+          message: msg.message
+        })) : [];
+        
+        return res.status(200).json(messageData);
+      } else {
+        return res.status(200).json([]);
+      }
+    } else {
+      const messages = await Message.findOne({ conversationId });
+      const messageData = messages ? messages.messages.map(msg => ({
+        user: { id: msg.senderId },
+        message: msg.message
+      })) : [];
+      
+      res.status(200).json(messageData);
     }
   } catch (error) {
     console.log(error, "Error");
@@ -282,41 +330,23 @@ app.post("/api/message", async (req, res) => {
   }
 });
 
-app.get("/api/message/:conversationId", async (req, res) => {
+app.get("/api/users/:userId", async (req, res) => {
   try {
-    const checkMessages = async (conversationId) => {
-      console.log(conversationId, "conversationId");
-      const messages = await Message.find({ conversationId });
-      const messageUserData = await Promise.all(
-        messages.map(async (message) => {
-          const user = await User.findById(message.senderId);
-          if (!user) {
-            console.error(`User with ID ${message.senderId} not found`);
-            return null;
-          }
-          return {
-            user: { id: user._id, email: user.email, fullName: user.fullName },
-            message: message.message,
-          };
-        })
-      );
-      res.status(200).json(messageUserData.filter(Boolean));
-    };
-    const conversationId = req.params.conversationId;
-    if (conversationId === "new") {
-      const { senderId, receiverId } = req.body;
-      const newConversation = new Conversation({
-        members: [senderId, receiverId],
-      });
-      await newConversation.save();
-      const messages = await checkMessages(newConversation._id);
-      res.status(200).send({ messages, conversationId: newConversation._id });
-    } else {
-      const messages = await checkMessages(conversationId);
-      res.status(200).send({ messages, conversationId });
-    }
+    const userId = req.params.userId;
+    const users = await User.find({ _id: { $ne: userId } }).select('fullName email');
+    
+    const usersData = users.map(user => ({
+      user: {
+        receiverId: user._id,
+        email: user.email,
+        fullName: user.fullName
+      }
+    }));
+    
+    res.status(200).json(usersData);
   } catch (error) {
     console.log(error, "Error");
+    res.status(500).send("Internal Server Error");
   }
 });
 
