@@ -14,25 +14,35 @@ const Form = ({ isSignInPage = true }) => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    console.log('data=' ,data)
+    console.log('data=', data);
     e.preventDefault();
    
-      const res = await fetch(
-        `http://localhost:8000/api/${isSignInPage ? "login" : "register"}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        }
-      );
-      const resData = await res.json();
+    const res = await fetch(
+      `http://localhost:8000/api/${isSignInPage ? "login" : "register"}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }
+    );
 
-     if(res.status === 400){
-      alert( resData.message || "please fill the required fields")
-     }
-     
+    const resData = await res.json();
+    
+    if (res.status === 400) {
+      alert(resData.message || "Please fill the required fields");
+    } else if (res.status === 200) {
+      if (resData.token) {
+        localStorage.setItem('user:token', resData.token);
+        localStorage.setItem('user:detail', JSON.stringify(resData.user));
+        navigate('/');
+      } else {
+        alert(resData.message || "Registration successful");
+        if (!isSignInPage) {
+          navigate('/users/sign_in');
+        }
+      }
     }
   };
 
