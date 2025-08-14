@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
+require('dotenv').config();
 
-const password = encodeURIComponent('abishek1');
-const url = '';
 
-mongoose.connect(url)
+mongoose.connect(process.env.MONGODB_URL)
   .then(() => console.log('Connected to database'))
   .catch((err) => console.error('Error connecting to database:', err));
+
+  module.exports = mongoose;

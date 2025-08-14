@@ -15,7 +15,11 @@ const io = require("socket.io")(8080, {
 });
 
 //connection
-mongoose.connect
+mongoose.connect(process.env.MONGODB_URL).then(()=>{
+  console.log("Connected to database");
+}).catch((err)=>{
+  console.log(err, "Error connecting to database",process.env.MONGODB_URL);
+})
 
 // Define schemas and models
 const userSchema = new mongoose.Schema({
