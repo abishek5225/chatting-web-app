@@ -120,21 +120,16 @@ app.post("/api/register", async (req, res, next) => {
     const { fullName, email, password } = req.body;
 
     if (!fullName || !email || !password) {
-      res.status(400).send("Please fill all required fields");
-    } else {
-      const isAlreadyExist = await User.findOne({ email });
-      if (isAlreadyExist) {
-        res.status(400).send("User already exists");
-      } else {
-        const newUser = new User({ fullName, email });
-        bcryptjs.hash(password, 10, (err, hashedPassword) => {
-          newUser.set("password", hashedPassword);
-          newUser.save();
-          next();
-        });
-        return res.status(200).send("User registered successfully");
-      }
+      return res.status(400).json.apply({message:"Please fill all required fields"});
     }
+      const isAlreadyExist = await User.findOne({ email });
+      if(isAlreadyExist){
+        return res.status(400).json({message:"User already exists"});
+      }
+      const hashedPassword = await bcryptjs.hash(password, 10);
+      const newUser = 
+     
+    
   } catch (error) {
     console.log(error, "Error");
   }
