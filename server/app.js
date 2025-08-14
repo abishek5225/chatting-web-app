@@ -4,6 +4,9 @@ const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
+// Load environment variables from .env file
+require("dotenv").config();
+
 // Socket.io setup
 const io = require("socket.io")(8080, {
   cors: {
@@ -11,14 +14,8 @@ const io = require("socket.io")(8080, {
   },
 });
 
-// Connect to MongoDB
-const password = encodeURIComponent("abishek1");
-const url = `mongodb+srv://abishek:${password}@cluster0.yd0ynwb.mongodb.net/test?retryWrites=true&w=majority&appName=abishek`;
-
-mongoose
-  .connect(url)
-  .then(() => console.log("Connected to database"))
-  .catch((err) => console.error("Error connecting to database:", err));
+//connection
+mongoose.connect
 
 // Define schemas and models
 const userSchema = new mongoose.Schema({
