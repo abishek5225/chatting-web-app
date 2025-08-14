@@ -16,7 +16,7 @@ const password = encodeURIComponent("abishek1");
 const url = `mongodb+srv://abishek:${password}@cluster0.yd0ynwb.mongodb.net/test?retryWrites=true&w=majority&appName=abishek`;
 
 mongoose
-  .connect(url, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(url)
   .then(() => console.log("Connected to database"))
   .catch((err) => console.error("Error connecting to database:", err));
 

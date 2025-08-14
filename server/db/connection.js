@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
-const password = encodeURIComponent('userid');
-const url = `mongodb+srv://abishek:userid@cluster0.yd0ynwb.mongodb.net/test?retryWrites=true&w=majority&appName=password`;
+const password = encodeURIComponent('abishek1');
+const url = '';
 
 mongoose.connect(url)
   .then(() => console.log('Connected to database'))
