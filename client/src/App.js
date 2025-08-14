@@ -1,10 +1,10 @@
 import './App.css';
 import Dashboard from './modules/Dashboard';
 import Form from './modules/form';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 const ProtectedRoute = ({ children, auth= false}) => {
-  const isLoggedIn = localStorage.getItem('user:token') !==null || false;
+  const isLoggedIn = localStorage.getItem('user:token') !==null;
   const location = useLocation();
 
   if(!isLoggedIn && auth) {
