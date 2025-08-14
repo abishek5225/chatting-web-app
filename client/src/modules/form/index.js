@@ -27,17 +27,12 @@ const Form = ({ isSignInPage = true }) => {
           body: JSON.stringify(data),
         }
       );
+      const resData = await res.json();
 
      if(res.status === 400){
-      alert("please fill the required fields")
+      alert( resData.message || "please fill the required fields")
      }
-     else{
-      const resData = await res.json()
-      if(resData.token){
-        localStorage.setItem('user:token', resData.token)
-        localStorage.setItem('user:detail', JSON.stringify(resData.user))
-        navigate('/');
-     }
+     
     }
   };
 
