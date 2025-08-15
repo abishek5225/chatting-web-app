@@ -177,27 +177,34 @@ const Dashboard = () => {
 							</div>
 						</div>
 						
-						<div className="messages-container">
+						<div className="flex-1 p-6 overflow-y-auto bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col">
 							{messages?.messages?.length > 0 ? (
-								messages.messages.map(({ message, user: { id } = {} }, index) => (
-									<div 
-										key={index} 
-										className={`message-wrapper ${id === user?.id ? "sent" : "received"}`}
-									>
-										<div
-											className={`message-bubble ${
-												id === user?.id ? "message-sent" : "message-received"
-											}`}
+								messages.messages.map(({ message, user: { id } = {} }, index) => {
+									const isSent = id === user?.id;
+									return (
+										<div 
+											key={index} 
+											className={`w-full flex mb-3 ${isSent ? "justify-end" : "justify-start"}`}
 										>
-											{message}
+											<div
+												className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl break-words ${
+													isSent 
+														? "bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-br-sm" 
+														: "bg-white text-gray-800 border border-gray-200 rounded-bl-sm shadow-sm"
+												}`}
+											>
+												{message}
+											</div>
 										</div>
-									</div>
-								))
+									);
+								})
 							) : (
-								<div className="empty-chat">
-									<div className="empty-chat-icon">💬</div>
-									<h3>Start a conversation</h3>
-									<p>Send a message to begin chatting</p>
+								<div className="flex flex-col items-center justify-center h-full text-gray-500 text-center">
+									<div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4 text-white text-3xl">
+										💬
+									</div>
+									<h3 className="text-lg font-semibold mb-2">Start a conversation</h3>
+									<p className="text-sm">Send a message to begin chatting</p>
 								</div>
 							)}
 							<div ref={messageRef}></div>
