@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import "./style.css";
 import Img1 from '../../assets/img1.jpg'
 import Logo from "../../assets/logo.png";
 import { io } from 'socket.io-client'
 
 const Dashboard = () => {
+	const navigate = useNavigate()
 	const [user] = useState(JSON.parse(localStorage.getItem('user:detail')))
 	const [conversations, setConversations] = useState([])
 	const [messages, setMessages] = useState({})
@@ -12,6 +14,13 @@ const Dashboard = () => {
 	const [users, setUsers] = useState([])
 	const [socket, setSocket] = useState(null)
 	const messageRef = useRef(null)
+
+	const handleLogout = () => {
+		localStorage.removeItem('user:token')
+		localStorage.removeItem('user:detail')
+		socket?.disconnect()
+		navigate('/users/sign_in')
+	}
 
 	useEffect(() => {
 		setSocket(io('http://localhost:8080'))
@@ -123,6 +132,13 @@ const Dashboard = () => {
 						<h3>{user?.fullName}</h3>
 						<p>My Account</p>
 					</div>
+					<button 
+						onClick={handleLogout}
+						className="logout-btn"
+						title="Logout"
+					>
+						🚪
+					</button>
 				</div>
 				
 				<div className="messages-section">
@@ -164,7 +180,10 @@ const Dashboard = () => {
 						<div className="messages-container">
 							{messages?.messages?.length > 0 ? (
 								messages.messages.map(({ message, user: { id } = {} }, index) => (
-									<div key={index}>
+									<div 
+										key={index} 
+										className={`message-wrapper ${id === user?.id ? "sent" : "received"}`}
+									>
 										<div
 											className={`message-bubble ${
 												id === user?.id ? "message-sent" : "message-received"
@@ -172,7 +191,6 @@ const Dashboard = () => {
 										>
 											{message}
 										</div>
-										<div ref={messageRef}></div>
 									</div>
 								))
 							) : (
@@ -182,6 +200,7 @@ const Dashboard = () => {
 									<p>Send a message to begin chatting</p>
 								</div>
 							)}
+							<div ref={messageRef}></div>
 						</div>
 						
 						<div className="message-input-container">
