@@ -47,19 +47,21 @@ const Form = ({ isSignInPage = true }) => {
   };
 
   return (
-    <div className="bg-light h-screen flex items-center justify-center">
-      <div className="bg-white w-[500px] h-[600px] rounded-2xl flex flex-col justify-center items-center">
-        <div className="heading">Welcome {isSignInPage && "Back"}</div>
-        <div className="heading2">
-          {isSignInPage
-            ? "Signin now to get started"
-            : "Signup now to get started"}
+    <div className="bg-gray-100 min-h-screen flex items-center justify-center">
+      <div className="bg-white w-full max-w-md mx-4 p-8 rounded-2xl shadow-xl">
+        <div className="text-3xl font-bold mb-2 text-gray-800 text-center animate-fade-in">
+          Welcome {isSignInPage && "Back"}
         </div>
-        <form onSubmit={handleSubmit}>
+        <div className="text-lg mb-8 text-gray-600 text-center">
+          {isSignInPage
+            ? "Sign in now to get started"
+            : "Sign up now to get started"}
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
           {!isSignInPage && (
             <Input
               label="Full Name"
-              name="name"
+              name="fullName"
               placeholder="Enter your full name"
               value={data.fullName}
               onChange={(e) => setData({ ...data, fullName: e.target.value })}
@@ -69,26 +71,26 @@ const Form = ({ isSignInPage = true }) => {
             label="Email"
             name="email"
             type="email"
-            placeholder="Enter your email-address"
+            placeholder="Enter your email address"
             value={data.email}
             onChange={(e) => setData({ ...data, email: e.target.value })}
           />
           <Input
-            label="password"
+            label="Password"
             name="password"
             type="password"
             placeholder="Enter your password"
             value={data.password}
             onChange={(e) => setData({ ...data, password: e.target.value })}
           />
-          <Button label={isSignInPage ? "Sign in" : "Signup"} type="submit" />
+          <Button label={isSignInPage ? "Sign in" : "Sign up"} type="submit" />
         </form>
-        <div>
+        <div className="text-center mt-6 text-gray-600">
           {isSignInPage
-            ? "Didn't have an account ?"
-            : "Already have an account ?"}
+            ? "Don't have an account?"
+            : "Already have an account?"}
           <span
-            className="link"
+            className="text-blue-600 cursor-pointer ml-1 underline hover:text-blue-800 transition-colors"
             onClick={() =>
               navigate(`/users/${isSignInPage ? "sign_up" : "sign_in"}`)
             }
